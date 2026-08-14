@@ -1,11 +1,11 @@
 "use client";
 
 import React, { Suspense, useState, useEffect, useMemo } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { 
   Sliders, ArrowLeft, TrendingUp, ArrowUpRight, ArrowDownRight, 
-  Sparkles, RefreshCw, Sprout, ShieldAlert, Check, Search, Filter, Plus 
+  Sparkles, RefreshCw, Sprout, ShieldAlert, Check, Search, Filter, Plus, MapPin, CloudSun, Compass, RotateCcw 
 } from "lucide-react";
 import { ScenarioControls } from "@/components/simulator/ScenarioControls";
 import { CustomCropModal } from "@/components/farm/CustomCropModal";
@@ -15,14 +15,17 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { runScenarioSimulation } from "@/lib/engine/simulation-engine";
 import { evaluateCropIntelligence } from "@/lib/engine/crop-engine";
+import { searchLocation, reverseGeocode } from "@/lib/services/location-service";
 import { REFERENCE_CROPS } from "@/data/crops";
 import { REFERENCE_MARKET_PRICES } from "@/data/market-prices";
 import { formatCurrency } from "@/lib/utils/utils";
 
 function SimulatorContent() {
   const searchParams = useSearchParams();
+  const router = useRouter();
 
-  const farmData = {
+  // Farm Profile State (Editable directly inside Simulator)
+  const [farmData, setFarmData] = useState({
     locationName: searchParams.get("location") || "Kochi, Kerala",
     latitude: parseFloat(searchParams.get("lat")) || 9.9312,
     longitude: parseFloat(searchParams.get("lon")) || 76.2673,
@@ -32,8 +35,15 @@ function SimulatorContent() {
     waterAvailability: searchParams.get("water") || "Moderate",
     irrigationType: searchParams.get("irrigation") || "Drip",
     season: searchParams.get("season") || "Kharif",
-  };
+  });
 
+  // Location search states
+  const [locationSearchInput, setLocationSearchInput] = useState(farmData.locationName);
+  const [locationSuggestions, setLocationSuggestions] = useState([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [liveWeather, setLiveWeather] = useState({ temperature: 28, rainfall: 800, isLive: false });
+
+  // Scenario slider state
   const [scenarioParams, setScenarioParams] = useState({
     priceShiftPct: 0,
     rainfallShiftPct: 0,
@@ -41,6 +51,7 @@ function SimulatorContent() {
     costShiftPct: 0,
   });
 
+  // Crop selection states
   const [allCrops, setAllCrops] = useState(REFERENCE_CROPS);
   const [selectedCropNames, setSelectedCropNames] = useState([
     "Tomato", "Rice", "Maize", "Chilli", "Dragonfruit", "Mango", "Watermelon"
@@ -52,8 +63,8 @@ function SimulatorContent() {
   const [simulationResult, setSimulationResult] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 1. Fetch available crops dynamically from API
-  const fetchAvailableCrops = () => {
+  // Load available crops dynamically from API
+  useEffect(() => {
     fetch("/api/crops")
       .then((res) => res.json())
       .then((json) => {
@@ -66,11 +77,87 @@ function SimulatorContent() {
         }
       })
       .catch((err) => console.warn("Failed to load simulator crops:", err));
+  }, []);
+
+  // Fetch live weather when location coordinates change
+  useEffect(() => {
+    async function fetchWeather() {
+      try {
+        const res = await fetch(`/api/weather?lat=${farmData.latitude}&lon=${farmData.longitude}`);
+        const json = await res.json();
+        if (json.success && json.data) {
+          setLiveWeather({
+            temperature: json.data.temperature || 28,
+            rainfall: json.data.rainfall || 800,
+            weatherCondition: json.data.weatherCondition || "Favorable",
+            isLive: json.data.isLive || false,
+          });
+        }
+      } catch (e) {
+        console.warn("Simulator weather fetch failed:", e);
+      }
+    }
+
+    fetchWeather();
+  }, [farmData.latitude, farmData.longitude]);
+
+  // Handle location text search autocompletion
+  useEffect(() => {
+    if (!locationSearchInput.trim() || locationSearchInput.length < 2) {
+      setLocationSuggestions([]);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearchingLocation(true);
+      try {
+        const results = await searchLocation(locationSearchInput);
+        setLocationSuggestions(results || []);
+      } catch (err) {
+        console.warn("Location search error:", err);
+      } finally {
+        setIsSearchingLocation(false);
+      }
+    }, 400);
+
+    return () => clearTimeout(timer);
+  }, [locationSearchInput]);
+
+  const selectLocationSuggestion = (loc) => {
+    setFarmData((prev) => ({
+      ...prev,
+      locationName: loc.locationName,
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+    }));
+    setLocationSearchInput(loc.locationName);
+    setLocationSuggestions([]);
   };
 
-  useEffect(() => {
-    fetchAvailableCrops();
-  }, []);
+  const handleDetectGPSLocation = () => {
+    if (typeof window !== "undefined" && navigator.geolocation) {
+      setIsSearchingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const loc = await reverseGeocode(lat, lon);
+          setFarmData((prev) => ({
+            ...prev,
+            locationName: loc.locationName,
+            latitude: lat,
+            longitude: lon,
+          }));
+          setLocationSearchInput(loc.locationName);
+          setIsSearchingLocation(false);
+        },
+        (error) => {
+          console.warn("GPS error:", error);
+          setIsSearchingLocation(false);
+        }
+      );
+    }
+  };
 
   const handleCustomCropCreated = (newCrop) => {
     if (newCrop && newCrop.name) {
@@ -123,12 +210,16 @@ function SimulatorContent() {
     setSelectedCropNames(allCrops.map((c) => c.name));
   };
 
-  // 2. Compute baseline analysis when active crop selection changes
+  const handleDeselectAllCrops = () => {
+    // Keep top 2 crops so evaluation matrix remains valid
+    setSelectedCropNames([allCrops[0]?.name || "Tomato", allCrops[1]?.name || "Rice"]);
+  };
+
+  // Re-calculate baseline analysis when farmData or activeCropsList changes
   useEffect(() => {
     if (activeCropsList.length === 0) return;
     try {
-      const weatherData = { temperature: 28, rainfall: 800 };
-      const base = evaluateCropIntelligence(farmData, activeCropsList, weatherData, REFERENCE_MARKET_PRICES);
+      const base = evaluateCropIntelligence(farmData, activeCropsList, liveWeather, REFERENCE_MARKET_PRICES);
       setBaselineAnalysis(base);
       const sim = runScenarioSimulation(base, scenarioParams);
       setSimulationResult(sim);
@@ -137,9 +228,9 @@ function SimulatorContent() {
     } finally {
       setLoading(false);
     }
-  }, [activeCropsList, searchParams]);
+  }, [farmData, activeCropsList, liveWeather]);
 
-  // 3. Recalculate simulation whenever sliders change
+  // Recalculate simulation whenever sliders change
   useEffect(() => {
     if (baselineAnalysis) {
       const sim = runScenarioSimulation(baselineAnalysis, scenarioParams);
@@ -174,13 +265,13 @@ function SimulatorContent() {
         <div>
           <div className="flex items-center gap-2 text-xs font-bold text-emerald-600 uppercase tracking-wider">
             <Sliders className="w-4 h-4" />
-            <span>Sensitivity & Scenario Lab</span>
+            <span>Interactive Location & Sensitivity Simulator</span>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1D1D1F] tracking-tight mt-1">
             What-If Scenario Simulator
           </h1>
           <p className="text-xs text-[#86868B] mt-0.5 font-medium">
-            Test how market price swings, droughts, and cost increases affect your crop profits and rankings.
+            Edit location, soil profile, and farm size to simulate market price swings and climate impacts in real-time.
           </p>
         </div>
 
@@ -196,11 +287,162 @@ function SimulatorContent() {
 
           <Link href="/analysis">
             <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold border-black/[0.1]">
-              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Analysis
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Report
             </Button>
           </Link>
         </div>
       </div>
+
+      {/* 📍 Editable Location & Farm Parameters Card */}
+      <Card className="border border-black/[0.06] shadow-apple-sm p-6 space-y-4 bg-white rounded-3xl">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-3 border-b border-black/[0.05] pb-4">
+          <div className="flex items-center gap-2">
+            <MapPin className="w-5 h-5 text-emerald-600 shrink-0" />
+            <div>
+              <span className="text-xs font-extrabold uppercase tracking-wider text-[#1D1D1F] block">
+                Target Location & Farm Parameters
+              </span>
+              <p className="text-[11px] text-[#86868B] font-medium">Change farm parameters below to recalculate crop recommendations.</p>
+            </div>
+          </div>
+
+          {liveWeather.isLive && (
+            <Badge variant="success" className="rounded-full text-[10px] py-1 px-3 flex items-center gap-1">
+              <CloudSun className="w-3.5 h-3.5" /> Live Open-Meteo ({liveWeather.temperature}°C)
+            </Badge>
+          )}
+        </div>
+
+        {/* Location Search Bar & Parameters Inputs Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Location Autocomplete */}
+          <div className="md:col-span-2 relative">
+            <label className="block text-[11px] font-bold text-[#1D1D1F] uppercase mb-1">
+              Search Location (OpenStreetMap Nominatim API)
+            </label>
+            <div className="relative flex items-center">
+              <MapPin className="w-4 h-4 text-[#86868B] absolute left-3" />
+              <input
+                type="text"
+                placeholder="Type village, district, or city (e.g. Kochi, Shimla, Nashik, Ludhiana)..."
+                value={locationSearchInput}
+                onChange={(e) => setLocationSearchInput(e.target.value)}
+                className="w-full pl-9 pr-24 py-2.5 rounded-2xl border border-black/[0.08] text-xs font-semibold focus:ring-2 focus:ring-emerald-600 bg-[#F5F5F7]/50"
+              />
+              <button
+                type="button"
+                onClick={handleDetectGPSLocation}
+                className="absolute right-2 text-[11px] font-bold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200/60 px-2.5 py-1 rounded-full flex items-center gap-1 transition-colors"
+              >
+                <Compass className="w-3 h-3" /> GPS
+              </button>
+            </div>
+
+            {/* Suggestions Dropdown */}
+            {locationSuggestions.length > 0 && (
+              <div className="absolute left-0 right-0 top-full mt-1 bg-white rounded-2xl border border-black/[0.08] shadow-apple-md z-30 overflow-hidden max-h-48 overflow-y-auto">
+                {locationSuggestions.map((item, idx) => (
+                  <button
+                    key={idx}
+                    type="button"
+                    onClick={() => selectLocationSuggestion(item)}
+                    className="w-full text-left px-4 py-2.5 text-xs hover:bg-slate-50 border-b border-black/[0.04] last:border-0 font-medium text-[#1D1D1F] flex items-center gap-2"
+                  >
+                    <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                    <span className="truncate">{item.locationName}</span>
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Farm Size & Unit */}
+          <div>
+            <label className="block text-[11px] font-bold text-[#1D1D1F] uppercase mb-1">
+              Farm Area & Size
+            </label>
+            <div className="flex gap-2">
+              <input
+                type="number"
+                step="0.5"
+                value={farmData.area}
+                onChange={(e) => setFarmData({ ...farmData, area: parseFloat(e.target.value) || 1 })}
+                className="w-full px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-[#F5F5F7]/50 text-[#1D1D1F]"
+              />
+              <select
+                value={farmData.areaUnit}
+                onChange={(e) => setFarmData({ ...farmData, areaUnit: e.target.value })}
+                className="px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-white text-[#1D1D1F]"
+              >
+                <option value="acres">Acres</option>
+                <option value="hectares">Hectares</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        {/* Soil, Water, Irrigation, and Season Selectors Grid */}
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-black/[0.05]">
+          <div>
+            <label className="block text-[10px] font-bold text-[#86868B] uppercase mb-1">Soil Type</label>
+            <select
+              value={farmData.soilType}
+              onChange={(e) => setFarmData({ ...farmData, soilType: e.target.value })}
+              className="w-full px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-white text-[#1D1D1F]"
+            >
+              <option value="Loamy">Loamy Soil</option>
+              <option value="Sandy">Sandy Soil</option>
+              <option value="Clay">Clay Soil</option>
+              <option value="Silty">Silty Soil</option>
+              <option value="Black">Black Soil</option>
+              <option value="Red">Red Soil</option>
+              <option value="Laterite">Laterite Soil</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-[#86868B] uppercase mb-1">Water Supply</label>
+            <select
+              value={farmData.waterAvailability}
+              onChange={(e) => setFarmData({ ...farmData, waterAvailability: e.target.value })}
+              className="w-full px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-white text-[#1D1D1F]"
+            >
+              <option value="Low">Low Water</option>
+              <option value="Moderate">Moderate Water</option>
+              <option value="High">High Water</option>
+              <option value="Very High">Very High Water</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-[#86868B] uppercase mb-1">Irrigation Method</label>
+            <select
+              value={farmData.irrigationType}
+              onChange={(e) => setFarmData({ ...farmData, irrigationType: e.target.value })}
+              className="w-full px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-white text-[#1D1D1F]"
+            >
+              <option value="Drip">Drip Systems</option>
+              <option value="Sprinkler">Sprinkler</option>
+              <option value="Flood">Flood / Canal</option>
+              <option value="Rainfed">Rainfed Only</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[10px] font-bold text-[#86868B] uppercase mb-1">Season</label>
+            <select
+              value={farmData.season}
+              onChange={(e) => setFarmData({ ...farmData, season: e.target.value })}
+              className="w-full px-3 py-2 rounded-2xl border border-black/[0.08] text-xs font-semibold bg-white text-[#1D1D1F]"
+            >
+              <option value="Kharif">Kharif (Monsoon)</option>
+              <option value="Rabi">Rabi (Winter)</option>
+              <option value="Summer">Summer (Zaid)</option>
+              <option value="Year-round">Year-round</option>
+            </select>
+          </div>
+        </div>
+      </Card>
 
       {/* Interactive Crop Selection Panel */}
       <Card className="border border-black/[0.06] shadow-apple-sm p-6 space-y-4 bg-white rounded-3xl">
@@ -209,10 +451,10 @@ function SimulatorContent() {
             <span className="text-xs font-extrabold uppercase tracking-wider text-[#1D1D1F] block">
               Select Crops & Fruits to Simulate ({selectedCropNames.length} Selected):
             </span>
-            <p className="text-[11px] text-[#86868B] font-medium">Choose candidate crops to include in the sensitivity calculation.</p>
+            <p className="text-[11px] text-[#86868B] font-medium">Click any pill to select or unselect candidate crops.</p>
           </div>
 
-          {/* Quick Presets */}
+          {/* Quick Presets & Select All / Deselect All Controls */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               type="button"
@@ -235,12 +477,22 @@ function SimulatorContent() {
             >
               + Veggies Suite
             </button>
+
+            <span className="w-px h-4 bg-black/[0.1] mx-0.5" />
+
             <button
               type="button"
               onClick={handleSelectAllCrops}
               className="px-3 py-1 rounded-full text-xs font-semibold bg-[#1D1D1F] text-white hover:bg-black transition-colors"
             >
               Select All
+            </button>
+            <button
+              type="button"
+              onClick={handleDeselectAllCrops}
+              className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60 hover:bg-rose-100 transition-colors"
+            >
+              Deselect All
             </button>
             <button
               type="button"
@@ -305,7 +557,7 @@ function SimulatorContent() {
             <CardHeader className="border-b border-black/[0.05] pb-3 flex flex-row items-center justify-between">
               <CardTitle className="text-base font-extrabold flex items-center gap-2 text-[#1D1D1F]">
                 <TrendingUp className="w-5 h-5 text-emerald-600" />
-                <span>Simulated Financial Returns (Recharts)</span>
+                <span>Simulated Financial Returns for {farmData.locationName}</span>
               </CardTitle>
               <Badge variant="success" className="text-[10px] rounded-full">Real-Time Updated</Badge>
             </CardHeader>
@@ -320,7 +572,7 @@ function SimulatorContent() {
               <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                 <div>
                   <div className="flex items-center gap-2 text-xs font-extrabold text-emerald-400 uppercase tracking-wider">
-                    <Sparkles className="w-4 h-4" /> Top Choice Under Simulated Conditions
+                    <Sparkles className="w-4 h-4" /> Top Choice for {farmData.locationName} ({farmData.area} {farmData.areaUnit})
                   </div>
                   <h2 className="text-2xl font-black mt-1 text-white">{rec.crop.name}</h2>
                   <p className="text-xs text-[#86868B] mt-1 font-medium">

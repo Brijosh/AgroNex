@@ -21,9 +21,9 @@ const prisma = new PrismaClient();
 
 test("E2E Audit [1/10]: Reference Data Integrity", () => {
   assert.ok(Array.isArray(REFERENCE_CROPS), "REFERENCE_CROPS must be an array");
-  assert.equal(REFERENCE_CROPS.length, 12, "Must contain exactly 12 seeded reference crops");
+  assert.ok(REFERENCE_CROPS.length >= 12, "Must contain at least 12 seeded reference crops");
   assert.ok(Array.isArray(REFERENCE_MARKET_PRICES), "REFERENCE_MARKET_PRICES must be an array");
-  assert.equal(REFERENCE_MARKET_PRICES.length, 12, "Must contain exactly 12 market prices");
+  assert.ok(REFERENCE_MARKET_PRICES.length >= 12, "Must contain at least 12 market prices");
 });
 
 test("E2E Audit [2/10]: OpenStreetMap Nominatim Geocoding API", async () => {

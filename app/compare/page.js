@@ -58,6 +58,14 @@ export default function ComparePage() {
     }
   };
 
+  const handleSelectAll = () => {
+    setSelectedCrops(allCrops.slice(0, 8).map((c) => c.name));
+  };
+
+  const handleDeselectAll = () => {
+    setSelectedCrops([allCrops[0]?.name || "Tomato", allCrops[1]?.name || "Rice"]);
+  };
+
   const comparedData = useMemo(() => {
     return selectedCrops.map((name) => {
       const found = allCrops.find((c) => c.name.toLowerCase() === name.toLowerCase());
@@ -105,10 +113,10 @@ export default function ComparePage() {
             <span className="text-xs font-extrabold uppercase tracking-wider text-[#1D1D1F] block">
               Select Candidate Crops to Compare ({selectedCrops.length} / 8 Selected):
             </span>
-            <p className="text-[11px] text-[#86868B] font-medium">Click any crop pill to add or remove from comparison matrix.</p>
+            <p className="text-[11px] text-[#86868B] font-medium">Click any crop pill to select or deselect from comparison matrix.</p>
           </div>
 
-          {/* Quick Presets */}
+          {/* Quick Presets & Select All / Deselect All Controls */}
           <div className="flex items-center gap-1.5 flex-wrap">
             <button
               type="button"
@@ -130,6 +138,23 @@ export default function ComparePage() {
               className="px-3 py-1 rounded-full text-xs font-semibold bg-slate-100 text-[#1D1D1F] hover:bg-slate-200 transition-colors"
             >
               + Veggies Suite
+            </button>
+
+            <span className="w-px h-4 bg-black/[0.1] mx-0.5" />
+
+            <button
+              type="button"
+              onClick={handleSelectAll}
+              className="px-3 py-1 rounded-full text-xs font-semibold bg-[#1D1D1F] text-white hover:bg-black transition-colors"
+            >
+              Select All
+            </button>
+            <button
+              type="button"
+              onClick={handleDeselectAll}
+              className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60 hover:bg-rose-100 transition-colors"
+            >
+              Deselect All
             </button>
           </div>
         </div>
