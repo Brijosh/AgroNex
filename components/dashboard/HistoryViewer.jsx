@@ -14,17 +14,43 @@ export function HistoryViewer() {
 
   useEffect(() => {
     async function loadHistory() {
+      let serverHistory = [];
       try {
         const res = await fetch("/api/history");
         const json = await res.json();
         if (json.success && Array.isArray(json.data)) {
-          setHistory(json.data);
+          serverHistory = json.data;
         }
       } catch (err) {
-        console.warn("Failed to load history:", err);
-      } finally {
-        setLoading(false);
+        console.warn("Failed to load server history:", err);
       }
+
+      let localHistory = [];
+      try {
+        if (typeof window !== "undefined" && window.localStorage) {
+          localHistory = JSON.parse(localStorage.getItem("agronex_history") || "[]");
+        }
+      } catch (e) {
+        console.warn("LocalStorage history read error:", e);
+      }
+
+      // Merge and deduplicate by ID or timestamp + cropName
+      const map = new Map();
+      [...serverHistory, ...localHistory].forEach((item) => {
+        if (item && item.recommendedCropName) {
+          const key = item.id || `${item.recommendedCropName}-${item.createdAt}`;
+          if (!map.has(key)) {
+            map.set(key, item);
+          }
+        }
+      });
+
+      const mergedList = Array.from(map.values()).sort(
+        (a, b) => new Date(b.createdAt) - new Date(a.createdAt)
+      );
+
+      setHistory(mergedList);
+      setLoading(false);
     }
 
     loadHistory();

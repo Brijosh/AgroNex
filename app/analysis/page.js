@@ -52,7 +52,45 @@ function AnalysisContent() {
         if (json.success && json.data) {
           setAnalysis(json.data);
 
-          // Automatically persist farm plot and analysis run to SQLite database
+          // 1. Dual-Layer Storage: Persist to Browser localStorage for Vercel Serverless Reliability
+          try {
+            if (typeof window !== "undefined" && window.localStorage) {
+              // Store Farm Plot in LocalStorage
+              const existingFarms = JSON.parse(localStorage.getItem("agronex_farms") || "[]");
+              const newFarm = {
+                id: `farm-${Date.now()}`,
+                name: `${farmData.locationName} Plot (${farmData.area} ${farmData.areaUnit})`,
+                ...farmData,
+                createdAt: new Date().toISOString(),
+              };
+              const updatedFarms = [newFarm, ...existingFarms.filter((f) => f.locationName !== farmData.locationName)];
+              localStorage.setItem("agronex_farms", JSON.stringify(updatedFarms));
+
+              // Store History Run in LocalStorage
+              if (json.data.recommendedCrop) {
+                const rec = json.data.recommendedCrop;
+                const existingHistory = JSON.parse(localStorage.getItem("agronex_history") || "[]");
+                const newHistory = {
+                  id: `run-${Date.now()}`,
+                  farmId: newFarm.id,
+                  recommendedCropName: rec.crop.name,
+                  finalScore: rec.finalScore,
+                  confidenceScore: json.data.confidenceScore || 85,
+                  estimatedRevenue: rec.financials.revenue,
+                  estimatedCost: rec.financials.cost,
+                  estimatedProfit: rec.financials.profit,
+                  createdAt: new Date().toISOString(),
+                  farm: newFarm,
+                };
+                const updatedHistory = [newHistory, ...existingHistory];
+                localStorage.setItem("agronex_history", JSON.stringify(updatedHistory));
+              }
+            }
+          } catch (lsErr) {
+            console.warn("LocalStorage save warning:", lsErr);
+          }
+
+          // 2. Persist to Prisma SQLite Backend API
           try {
             const farmRes = await fetch("/api/farms", {
               method: "POST",
@@ -79,7 +117,7 @@ function AnalysisContent() {
               });
             }
           } catch (persistErr) {
-            console.warn("Failed to persist farm/history to SQLite:", persistErr);
+            console.warn("SQLite API save warning:", persistErr);
           }
         }
       } catch (err) {
