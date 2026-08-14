@@ -4,7 +4,7 @@ generator client {
 
 datasource db {
   provider = "sqlite"
-  url      = env("DATABASE_URL")
+  url      = "file:./dev.db"
 }
 
 model User {
@@ -85,19 +85,19 @@ model MarketPrice {
 }
 
 model Analysis {
-  id                 String   @id @default(cuid())
-  farmId             String?
-  farm               Farm?    @relation(fields: [farmId], references: [id], onDelete: SetNull)
-  recommendedCropId String?
+  id                  String   @id @default(cuid())
+  farmId              String?
+  farm                Farm?    @relation(fields: [farmId], references: [id], onDelete: SetNull)
+  recommendedCropId  String?
   recommendedCropName String?
-  finalScore         Float
-  confidenceScore    Float
-  estimatedRevenue   Float
-  estimatedCost      Float
-  estimatedProfit    Float
-  scoringBreakdown   String?  // JSON string e.g. { soil: 95, profit: 91, ... }
-  riskBreakdown      String?  // JSON string
-  reasons            String?  // JSON array string
-  explanation        String?
-  createdAt          DateTime @default(now())
+  finalScore          Float
+  confidenceScore     Float
+  estimatedRevenue    Float
+  estimatedCost       Float
+  estimatedProfit     Float
+  scoringBreakdown    String?  // JSON string e.g. { soil: 95, profit: 91, ... }
+  riskBreakdown       String?  // JSON string
+  reasons             String?  // JSON array string
+  explanation         String?
+  createdAt           DateTime @default(now())
 }

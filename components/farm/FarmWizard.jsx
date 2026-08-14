@@ -48,7 +48,6 @@ export function FarmWizard({ initialDemo = false }) {
   const [detectedSoil, setDetectedSoil] = useState(null);
   const [errors, setErrors] = useState({});
 
-  // Fetch all crops (reference + custom) with strict case-insensitive Map deduplication
   useEffect(() => {
     fetch("/api/crops")
       .then((res) => res.json())
@@ -68,7 +67,6 @@ export function FarmWizard({ initialDemo = false }) {
       .catch((e) => console.warn("Failed to fetch crops list:", e));
   }, []);
 
-  // Debounced search for location auto-complete
   useEffect(() => {
     if (!formData.locationName || formData.locationName.length < 3) {
       setLocationSuggestions([]);
@@ -92,7 +90,6 @@ export function FarmWizard({ initialDemo = false }) {
     return () => clearTimeout(timer);
   }, [formData.locationName]);
 
-  // Auto-detect soil properties when coordinates change
   useEffect(() => {
     if (formData.latitude && formData.longitude) {
       fetch(`/api/soil?lat=${formData.latitude}&lon=${formData.longitude}`)
@@ -258,35 +255,37 @@ export function FarmWizard({ initialDemo = false }) {
   const seasonOptions = ["Kharif", "Rabi", "Summer", "Year-round"];
 
   return (
-    <div className="max-w-2xl mx-auto py-8 px-4">
-      {/* Top Demo Quickfill Banner */}
-      <div className="mb-6 bg-emerald-50 border border-emerald-200 rounded-xl p-4 flex items-center justify-between gap-4">
+    <div className="max-w-2xl mx-auto py-10 px-4">
+      {/* Apple-style Demo Banner */}
+      <div className="mb-6 bg-white/80 backdrop-blur-xl border border-black/[0.06] rounded-2xl p-4 flex items-center justify-between gap-4 shadow-apple-sm">
         <div className="flex items-center gap-3">
-          <Sprout className="w-5 h-5 text-emerald-600 shrink-0" />
-          <div className="text-xs text-slate-700">
-            <strong>Auto-Fetch Open Data Demo:</strong>
-            <p className="text-slate-500">Auto-fill Kochi (OpenStreetMap Geocoded, Open-Meteo Weather, SoilGrids API).</p>
+          <div className="w-8 h-8 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center font-bold shrink-0">
+            <Sprout className="w-4 h-4" />
+          </div>
+          <div className="text-xs text-[#1D1D1F]">
+            <strong className="font-semibold">Auto-Fetch Open Data Demo:</strong>
+            <p className="text-[#86868B] font-normal">Auto-fill Kochi (OpenStreetMap, Open-Meteo Weather, SoilGrids API).</p>
           </div>
         </div>
-        <Button variant="outline" size="sm" onClick={handleTryDemo} className="shrink-0 bg-white border-emerald-300 text-emerald-800 hover:bg-emerald-100 font-bold">
+        <Button variant="outline" size="sm" onClick={handleTryDemo} className="shrink-0 bg-[#F5F5F7] border border-black/[0.08] text-[#1D1D1F] hover:bg-[#E5E5EA] font-semibold text-xs rounded-full px-4">
           Try Demo Data
         </Button>
       </div>
 
-      <Card className="border-slate-200/90 shadow-card">
-        {/* Wizard Header & Progress Bar */}
-        <CardHeader className="bg-slate-50/60 pb-4">
-          <div className="flex items-center justify-between text-xs font-bold text-slate-500 mb-2">
+      <Card className="border border-black/[0.06] shadow-apple-md bg-white rounded-3xl overflow-hidden">
+        {/* Header & Progress Line */}
+        <CardHeader className="bg-[#FAF9F6]/80 pb-4 border-b border-black/[0.05]">
+          <div className="flex items-center justify-between text-xs font-semibold text-[#86868B] mb-2">
             <span>Step {step} of 8</span>
             <span>{Math.round((step / 8) * 100)}% Completed</span>
           </div>
-          <div className="w-full h-2 bg-slate-200 rounded-full overflow-hidden">
-            <div className="h-full bg-crop-600 transition-all duration-300" style={{ width: `${(step / 8) * 100}%` }}></div>
+          <div className="w-full h-1 bg-black/[0.06] rounded-full overflow-hidden">
+            <div className="h-full bg-emerald-600 transition-all duration-300 rounded-full" style={{ width: `${(step / 8) * 100}%` }}></div>
           </div>
-          <CardTitle className="text-xl mt-4">
-            {step === 1 && "Step 1: Search Your Location (OpenStreetMap)"}
+          <CardTitle className="text-xl font-extrabold text-[#1D1D1F] tracking-tight mt-4">
+            {step === 1 && "Step 1: Search Your Location"}
             {step === 2 && "Step 2: Land Area Size"}
-            {step === 3 && "Step 3: Soil Type (Auto-Detected or Manual)"}
+            {step === 3 && "Step 3: Soil Type"}
             {step === 4 && "Step 4: Water Availability"}
             {step === 5 && "Step 5: Irrigation System"}
             {step === 6 && "Step 6: Cultivation Season"}
@@ -295,33 +294,32 @@ export function FarmWizard({ initialDemo = false }) {
           </CardTitle>
         </CardHeader>
 
-        <CardContent className="p-6 min-h-[280px] flex flex-col justify-center">
-          {/* STEP 1: Live Geocoded Location */}
+        <CardContent className="p-6 min-h-[260px] flex flex-col justify-center">
+          {/* STEP 1: Location */}
           {step === 1 && (
             <div className="space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Search Village / District / City</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#86868B]">Search Village / District / City</label>
               <div className="relative">
-                <Search className="w-5 h-5 text-slate-400 absolute left-3.5 top-3" />
+                <Search className="w-4 h-4 text-[#86868B] absolute left-3.5 top-3.5" />
                 <input
                   type="text"
                   placeholder="Type city or village (e.g. Kochi, Ludhiana, Pune)..."
                   value={formData.locationName}
                   onChange={(e) => setFormData({ ...formData, locationName: e.target.value })}
-                  className="w-full pl-11 pr-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-crop-500 text-slate-900 text-sm font-medium"
+                  className="w-full pl-10 pr-4 py-3 rounded-2xl border border-black/[0.1] focus:ring-2 focus:ring-emerald-600 text-[#1D1D1F] text-sm font-medium bg-[#F5F5F7]/50"
                 />
               </div>
 
-              {/* Suggestions Dropdown */}
               {locationSuggestions.length > 0 && (
-                <div className="bg-white border border-slate-200 rounded-lg shadow-elevated overflow-hidden divide-y divide-slate-100 max-h-48 overflow-y-auto">
+                <div className="bg-white border border-black/[0.08] rounded-2xl shadow-apple-md overflow-hidden divide-y divide-black/[0.04] max-h-48 overflow-y-auto">
                   {locationSuggestions.map((item, idx) => (
                     <button
                       key={idx}
                       type="button"
                       onClick={() => handleSelectLocation(item)}
-                      className="w-full text-left p-2.5 text-xs text-slate-700 hover:bg-crop-50 hover:text-crop-900 transition-colors flex items-center gap-2"
+                      className="w-full text-left p-3 text-xs text-[#1D1D1F] hover:bg-emerald-50 hover:text-emerald-900 transition-colors flex items-center gap-2 font-medium"
                     >
-                      <MapPin className="w-3.5 h-3.5 text-crop-600 shrink-0" />
+                      <MapPin className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
                       <span className="truncate">{item.locationName}</span>
                     </button>
                   ))}
@@ -337,9 +335,9 @@ export function FarmWizard({ initialDemo = false }) {
                   size="sm"
                   onClick={handleDetectBrowserLocation}
                   disabled={isGeolocating}
-                  className="text-xs flex items-center gap-2 font-semibold"
+                  className="text-xs flex items-center gap-2 font-semibold text-[#1D1D1F] rounded-full border border-black/[0.08] bg-white hover:bg-slate-50"
                 >
-                  <Navigation className="w-3.5 h-3.5 text-crop-600" />
+                  <Navigation className="w-3.5 h-3.5 text-emerald-600" />
                   {isGeolocating ? "Detecting GPS location..." : "Use Browser Geolocation"}
                 </Button>
               </div>
@@ -349,7 +347,7 @@ export function FarmWizard({ initialDemo = false }) {
           {/* STEP 2: Land Area */}
           {step === 2 && (
             <div className="space-y-4">
-              <label className="block text-xs font-bold uppercase tracking-wider text-slate-700">Land Area Size</label>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-[#86868B]">Land Area Size</label>
               <div className="flex gap-3">
                 <input
                   type="number"
@@ -358,12 +356,12 @@ export function FarmWizard({ initialDemo = false }) {
                   placeholder="e.g. 2.5"
                   value={formData.area}
                   onChange={(e) => setFormData({ ...formData, area: e.target.value })}
-                  className="flex-1 px-4 py-2.5 rounded-lg border border-slate-300 focus:ring-2 focus:ring-crop-500 text-slate-900 text-sm font-semibold"
+                  className="flex-1 px-4 py-3 rounded-2xl border border-black/[0.1] focus:ring-2 focus:ring-emerald-600 text-[#1D1D1F] text-sm font-semibold bg-[#F5F5F7]/50"
                 />
                 <select
                   value={formData.areaUnit}
                   onChange={(e) => setFormData({ ...formData, areaUnit: e.target.value })}
-                  className="w-32 px-3 py-2.5 rounded-lg border border-slate-300 bg-white font-medium text-sm text-slate-700"
+                  className="w-36 px-3 py-3 rounded-2xl border border-black/[0.1] bg-white font-semibold text-sm text-[#1D1D1F]"
                 >
                   <option value="acres">Acres</option>
                   <option value="hectares">Hectares</option>
@@ -373,28 +371,28 @@ export function FarmWizard({ initialDemo = false }) {
             </div>
           )}
 
-          {/* STEP 3: Soil Type */}
+          {/* STEP 3: Soil */}
           {step === 3 && (
             <div className="space-y-3">
               {detectedSoil && (
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between text-xs text-emerald-900 font-medium">
+                <div className="p-3 bg-emerald-50 border border-emerald-200/80 rounded-2xl flex items-center justify-between text-xs text-emerald-950 font-medium">
                   <div className="flex items-center gap-2">
                     <CheckCircle2 className="w-4 h-4 text-emerald-600" />
-                    <span><strong>Auto-Detected via ISRIC SoilGrids API:</strong> {detectedSoil} Soil</span>
+                    <span><strong>ISRIC SoilGrids Auto-Detect:</strong> {detectedSoil} Soil</span>
                   </div>
-                  <Badge variant="success">Open Data</Badge>
+                  <Badge variant="success" className="text-[10px] rounded-full">Open Data</Badge>
                 </div>
               )}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
                 {soilOptions.map((soil) => (
                   <button
                     key={soil}
                     type="button"
                     onClick={() => setFormData({ ...formData, soilType: soil })}
-                    className={`p-3.5 rounded-xl border text-left text-sm font-bold transition-all ${
+                    className={`p-3.5 rounded-2xl border text-left text-xs font-bold transition-all ${
                       formData.soilType === soil
-                        ? "border-crop-600 bg-crop-50 text-crop-900 shadow-sm ring-2 ring-crop-600"
-                        : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                        ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-apple-sm ring-1 ring-emerald-600"
+                        : "border-black/[0.06] hover:border-black/[0.12] text-[#1D1D1F] bg-white"
                     }`}
                   >
                     {soil}
@@ -404,18 +402,18 @@ export function FarmWizard({ initialDemo = false }) {
             </div>
           )}
 
-          {/* STEP 4: Water Availability */}
+          {/* STEP 4: Water */}
           {step === 4 && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-2.5">
               {waterOptions.map((level) => (
                 <button
                   key={level}
                   type="button"
                   onClick={() => setFormData({ ...formData, waterAvailability: level })}
-                  className={`p-3 rounded-xl border text-center text-sm font-bold transition-all ${
+                  className={`p-3.5 rounded-2xl border text-center text-xs font-bold transition-all ${
                     formData.waterAvailability === level
-                      ? "border-crop-600 bg-crop-50 text-crop-900 shadow-sm ring-2 ring-crop-600"
-                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-apple-sm ring-1 ring-emerald-600"
+                      : "border-black/[0.06] hover:border-black/[0.12] text-[#1D1D1F] bg-white"
                   }`}
                 >
                   {level}
@@ -426,16 +424,16 @@ export function FarmWizard({ initialDemo = false }) {
 
           {/* STEP 5: Irrigation */}
           {step === 5 && (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
               {irrigationOptions.map((irr) => (
                 <button
                   key={irr}
                   type="button"
                   onClick={() => setFormData({ ...formData, irrigationType: irr })}
-                  className={`p-3.5 rounded-xl border text-left text-sm font-bold transition-all ${
+                  className={`p-3.5 rounded-2xl border text-left text-xs font-bold transition-all ${
                     formData.irrigationType === irr
-                      ? "border-crop-600 bg-crop-50 text-crop-900 shadow-sm ring-2 ring-crop-600"
-                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-apple-sm ring-1 ring-emerald-600"
+                      : "border-black/[0.06] hover:border-black/[0.12] text-[#1D1D1F] bg-white"
                   }`}
                 >
                   {irr}
@@ -446,16 +444,16 @@ export function FarmWizard({ initialDemo = false }) {
 
           {/* STEP 6: Season */}
           {step === 6 && (
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-2 gap-2.5">
               {seasonOptions.map((s) => (
                 <button
                   key={s}
                   type="button"
                   onClick={() => setFormData({ ...formData, season: s })}
-                  className={`p-4 rounded-xl border text-left text-sm font-bold transition-all ${
+                  className={`p-4 rounded-2xl border text-left text-xs font-bold transition-all ${
                     formData.season === s
-                      ? "border-crop-600 bg-crop-50 text-crop-900 shadow-sm ring-2 ring-crop-600"
-                      : "border-slate-200 hover:border-slate-300 text-slate-700 bg-white"
+                      ? "border-emerald-600 bg-emerald-50 text-emerald-950 shadow-apple-sm ring-1 ring-emerald-600"
+                      : "border-black/[0.06] hover:border-black/[0.12] text-[#1D1D1F] bg-white"
                   }`}
                 >
                   {s}
@@ -464,31 +462,30 @@ export function FarmWizard({ initialDemo = false }) {
             </div>
           )}
 
-          {/* STEP 7: User Crop Inventory & Custom Crop Modal Launcher */}
+          {/* STEP 7: User Crop Inventory */}
           {step === 7 && (
             <div className="space-y-4">
               <div className="flex items-center justify-between flex-wrap gap-2">
-                <p className="text-xs text-slate-600 font-medium">Select ONLY the crops you want evaluated for your farm:</p>
+                <p className="text-xs text-[#86868B] font-medium">Select crops to evaluate for your plot:</p>
                 <div className="flex items-center gap-2">
-                  <button type="button" onClick={handleSelectAllCrops} className="text-[11px] font-bold text-crop-700 hover:underline">Select All</button>
-                  <span className="text-slate-300">•</span>
-                  <button type="button" onClick={handleClearCrops} className="text-[11px] font-bold text-slate-500 hover:underline">Clear All</button>
-                  <span className="text-slate-300">•</span>
+                  <button type="button" onClick={handleSelectAllCrops} className="text-[11px] font-bold text-emerald-600 hover:underline">Select All</button>
+                  <span className="text-[#86868B]">•</span>
+                  <button type="button" onClick={handleClearCrops} className="text-[11px] font-bold text-[#86868B] hover:underline">Clear All</button>
+                  <span className="text-[#86868B]">•</span>
                   <Button
                     type="button"
-                    variant="secondary"
                     size="sm"
                     onClick={() => setIsCustomModalOpen(true)}
-                    className="text-xs flex items-center gap-1.5 font-bold"
+                    className="text-xs flex items-center gap-1.5 font-semibold bg-[#1D1D1F] text-white rounded-full px-3 py-1"
                   >
-                    <Plus className="w-3.5 h-3.5 text-crop-600" /> + Add Custom Crop
+                    <Plus className="w-3.5 h-3.5 text-emerald-400" /> + Add Custom Crop
                   </Button>
                 </div>
               </div>
 
               {errors.userCrops && <p className="text-xs text-rose-600 font-semibold">{errors.userCrops}</p>}
 
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 max-h-56 overflow-y-auto p-1">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-2 max-h-56 overflow-y-auto p-1">
                 {availableCrops.map((cropName) => {
                   const isChecked = (formData.userCrops || []).some((c) => c.toLowerCase() === cropName.toLowerCase());
                   return (
@@ -496,17 +493,17 @@ export function FarmWizard({ initialDemo = false }) {
                       key={cropName}
                       type="button"
                       onClick={() => toggleUserCrop(cropName)}
-                      className={`p-3 rounded-xl border text-left text-xs font-bold transition-all flex items-center justify-between ${
+                      className={`p-3 rounded-2xl border text-left text-xs font-semibold transition-all flex items-center justify-between ${
                         isChecked
-                          ? "border-crop-600 bg-crop-700 text-white shadow-sm"
-                          : "border-slate-200 text-slate-700 bg-white hover:bg-slate-50"
+                          ? "border-[#1D1D1F] bg-[#1D1D1F] text-white shadow-apple-sm"
+                          : "border-black/[0.06] text-[#1D1D1F] bg-white hover:bg-slate-50"
                       }`}
                     >
                       <span className="flex items-center gap-1.5 truncate">
                         <Sprout className="w-3.5 h-3.5 shrink-0" />
                         {cropName}
                       </span>
-                      {isChecked && <Check className="w-4 h-4 text-emerald-300 shrink-0" />}
+                      {isChecked && <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
                     </button>
                   );
                 })}
@@ -517,14 +514,14 @@ export function FarmWizard({ initialDemo = false }) {
           {/* STEP 8: Preferences */}
           {step === 8 && (
             <div className="space-y-3">
-              <p className="text-xs text-slate-500 mb-2 font-medium">Optional priorities to tailor the weighted scoring algorithm:</p>
+              <p className="text-xs text-[#86868B] mb-2 font-medium">Optional priorities for weighted scoring:</p>
               {[
                 { key: "highProfit", label: "Maximize Potential Revenue & Net Return" },
                 { key: "lowRisk", label: "Prioritize Low Volatility & Minimal Crop Risk" },
                 { key: "lowWater", label: "Conserve Water Resources (Low Water Need)" },
                 { key: "shortDuration", label: "Prefer Short Growth Duration (Fast Harvest)" },
               ].map((pref) => (
-                <label key={pref.key} className="flex items-center gap-3 p-3 rounded-lg border border-slate-200 bg-white cursor-pointer hover:bg-slate-50">
+                <label key={pref.key} className="flex items-center gap-3 p-3.5 rounded-2xl border border-black/[0.06] bg-white cursor-pointer hover:bg-slate-50 transition-colors">
                   <input
                     type="checkbox"
                     checked={!!formData.preferences[pref.key]}
@@ -534,34 +531,37 @@ export function FarmWizard({ initialDemo = false }) {
                         preferences: { ...formData.preferences, [pref.key]: e.target.checked },
                       })
                     }
-                    className="w-4 h-4 text-crop-600 rounded focus:ring-crop-500 border-slate-300"
+                    className="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-600 border-slate-300"
                   />
-                  <span className="text-sm font-semibold text-slate-800">{pref.label}</span>
+                  <span className="text-xs font-semibold text-[#1D1D1F]">{pref.label}</span>
                 </label>
               ))}
             </div>
           )}
         </CardContent>
 
-        <CardFooter className="bg-slate-50/60 border-t border-slate-100 flex items-center justify-between">
+        <CardFooter className="bg-[#FAF9F6]/80 border-t border-black/[0.05] flex items-center justify-between p-4">
           <Button
             type="button"
             variant="outline"
             onClick={handleBack}
             disabled={step === 1}
-            className="flex items-center gap-1.5 font-bold"
+            className="flex items-center gap-1.5 font-semibold text-xs rounded-full border border-black/[0.08]"
           >
-            <ArrowLeft className="w-4 h-4" /> Back
+            <ArrowLeft className="w-3.5 h-3.5" /> Back
           </Button>
 
-          <Button type="button" variant="primary" onClick={handleNext} className="flex items-center gap-1.5 px-6 font-bold">
-            <span>{step === 8 ? "Analyze My Farm" : "Continue"}</span>
-            <ArrowRight className="w-4 h-4" />
+          <Button 
+            type="button" 
+            onClick={handleNext} 
+            className="flex items-center gap-1.5 px-6 py-2.5 bg-[#1D1D1F] hover:bg-black text-white font-semibold text-xs rounded-full shadow-apple-sm transition-all hover:scale-[1.02]"
+          >
+            <span>{step === 8 ? "Analyze Farm" : "Continue"}</span>
+            <ArrowRight className="w-3.5 h-3.5 text-emerald-400" />
           </Button>
         </CardFooter>
       </Card>
 
-      {/* Custom Crop Creation Modal */}
       <CustomCropModal
         isOpen={isCustomModalOpen}
         onClose={() => setIsCustomModalOpen(false)}

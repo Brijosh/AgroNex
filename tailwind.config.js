@@ -8,60 +8,45 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        crop: {
-          50: '#F2F8F5',
-          100: '#E2F1E8',
-          200: '#C3E2D1',
-          300: '#96CCB0',
-          400: '#63B18B',
-          500: '#3D966E',
-          600: '#2D7A58',
-          700: '#1B5B3E',
-          800: '#164E35',
-          900: '#0F3C28',
-          950: '#082317',
-        },
-        forest: {
-          50: '#F4F7F5',
-          100: '#E5EDE7',
-          600: '#235D3A',
-          700: '#1B4D2E',
-          800: '#143C23',
-          900: '#0D2B18',
-          950: '#071A0E',
-        },
-        surface: {
-          canvas: '#FAFAF8',
+        apple: {
+          canvas: '#F5F5F7',
           card: '#FFFFFF',
-          muted: '#F4F4F2',
-          subtle: '#ECECE9',
-          border: '#E5E5E2',
+          dark: '#1D1D1F',
+          subtle: '#86868B',
+          border: 'rgba(0, 0, 0, 0.08)',
+          emerald: '#059669',
+          emeraldDark: '#047857',
         },
-        pastel: {
-          green: '#EDF6EE',
-          greenText: '#235D3A',
-          amber: '#FEF6E9',
-          amberText: '#8D5B00',
-          sky: '#EBF5FB',
-          skyText: '#186499',
-          rose: '#FDF0F0',
-          roseText: '#A32828',
-        }
+        crop: {
+          50: '#F2F9F5',
+          100: '#E1F3E8',
+          200: '#C2E7D1',
+          300: '#95D4B1',
+          400: '#5EBB8A',
+          500: '#34A06B',
+          600: '#059669',
+          700: '#047857',
+          800: '#065F46',
+          900: '#064E3B',
+          950: '#022C22',
+        },
       },
       fontFamily: {
-        sans: ['"Plus Jakarta Sans"', 'system-ui', '-apple-system', 'sans-serif'],
+        sans: ['"Cabinet Grotesk"', '-apple-system', 'BlinkMacSystemFont', '"SF Pro Display"', 'sans-serif'],
         mono: ['"JetBrains Mono"', 'monospace'],
       },
       boxShadow: {
-        'ambient': '0 1px 2px 0 rgba(0, 0, 0, 0.02), 0 4px 12px 0 rgba(0, 0, 0, 0.03)',
-        'elevated': '0 8px 24px -4px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)',
-        'glow': '0 0 20px -2px rgba(27, 91, 62, 0.15)',
+        'apple-sm': '0 2px 8px rgba(0, 0, 0, 0.04)',
+        'apple-md': '0 8px 30px rgba(0, 0, 0, 0.06)',
+        'apple-lg': '0 20px 40px rgba(0, 0, 0, 0.08)',
+        'apple-glass': '0 8px 32px 0 rgba(0, 0, 0, 0.05)',
       },
-      transitionTimingFunction: {
-        'spring': 'cubic-bezier(0.16, 1, 0.3, 1)',
-      }
+      borderRadius: {
+        '2xl': '1rem',
+        '3xl': '1.5rem',
+        '4xl': '2rem',
+      },
     },
   },
   plugins: [],
 };
-

@@ -1,7 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 
-const { getMarketPrice, getFallbackMarketPrice } = require("../../lib/services/market-service");
+const { getMarketPrice } = require("../../lib/services/market-service");
 const { PrismaClient } = require("@prisma/client");
 const { evaluateCropIntelligence } = require("../../lib/engine/crop-engine");
 
@@ -14,8 +14,8 @@ test("Live Market Price Service: fetches commodity price payload and provides tr
   assert.ok(market.trend, "Trend indicator must be present");
 });
 
-test("Custom Crop Creation: persists new custom crop into Prisma SQLite database", async () => {
-  const customName = `Dragonfruit_${Date.now()}`;
+test("Custom Crop Creation: persists new custom crop into Prisma SQLite database and cleans up", async () => {
+  const customName = `TestDragon_${Date.now()}`;
 
   const createdCrop = await prisma.crop.create({
     data: {
@@ -53,4 +53,7 @@ test("Custom Crop Creation: persists new custom crop into Prisma SQLite database
 
   assert.ok(analysis.recommendedCrop, "Custom crop must be evaluated cleanly by engine");
   assert.equal(analysis.recommendedCrop.crop.name, customName);
+
+  // Clean up test crop immediately so it never pollutes the DB
+  await prisma.crop.delete({ where: { id: createdCrop.id } });
 });

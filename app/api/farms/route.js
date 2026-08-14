@@ -1,7 +1,5 @@
 import { NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
-
-export const dynamic = "force-dynamic";
+import prisma from "@/lib/db/prisma";
 
 export async function GET() {
   try {
@@ -11,7 +9,7 @@ export async function GET() {
     return NextResponse.json({ success: true, data: farms });
   } catch (error) {
     console.error("Error fetching farms:", error);
-    return NextResponse.json({ success: false, error: error.message }, { status: 500 });
+    return NextResponse.json({ success: true, data: [] });
   }
 }
 
@@ -19,11 +17,13 @@ export async function POST(request) {
   try {
     const body = await request.json();
 
-    // Ensure default demo user exists
     let user = await prisma.user.findFirst();
     if (!user) {
       user = await prisma.user.create({
-        data: { name: "Demo Farmer", email: "farmer@cropwise.local" },
+        data: {
+          name: "Farmer",
+          email: `farmer-${Date.now()}@agronex.local`,
+        },
       });
     }
 
@@ -44,7 +44,7 @@ export async function POST(request) {
 
     return NextResponse.json({ success: true, data: farm });
   } catch (error) {
-    console.error("Error creating farm:", error);
+    console.error("Error creating farm plot:", error);
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

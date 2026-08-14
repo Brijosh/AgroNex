@@ -1,57 +1,58 @@
-@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&display=swap');
+@import url('https://api.fontshare.com/v2/css?f[]=cabinet-grotesk@400,500,700,800,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500&display=swap');
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
-  --background: #FAFAF8;
-  --foreground: #141C18;
+  --background: #F5F5F7;
+  --foreground: #1D1D1F;
   --card: #FFFFFF;
-  --card-foreground: #141C18;
-  --primary: #1B5B3E;
+  --card-foreground: #1D1D1F;
+  --primary: #059669;
   --primary-foreground: #FFFFFF;
-  --border: #E5E5E2;
+  --border: rgba(0, 0, 0, 0.08);
 }
 
 * {
   box-sizing: border-box;
-}
-
-html {
-  scroll-behavior: smooth;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
+html {
+  scroll-behavior: smooth;
+  letter-spacing: -0.012em;
+}
+
 body {
   color: var(--foreground);
-  background: var(--background);
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--background);
+  font-family: "Cabinet Grotesk", -apple-system, BlinkMacSystemFont, "SF Pro Display", "Inter", sans-serif;
   min-height: 100vh;
 }
 
 ::selection {
-  background: #C3E2D1;
-  color: #082317;
+  background: rgba(5, 150, 105, 0.2);
+  color: #047857;
 }
 
 /* Custom minimal scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 5px;
+  height: 5px;
 }
 
 ::-webkit-scrollbar-track {
-  background: #FAFAF8;
+  background: transparent;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #D1D5DB;
+  background: rgba(0, 0, 0, 0.15);
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #9CA3AF;
+  background: rgba(0, 0, 0, 0.3);
 }
-
