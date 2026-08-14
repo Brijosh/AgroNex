@@ -2,7 +2,8 @@
 
 import React, { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
-import { BarChart2, ArrowLeft, Check, Sprout, Search, Plus, Sparkles, Filter } from "lucide-react";
+import { BarChart2, ArrowLeft, Check, Sprout, Search, Plus, Sparkles, Filter, TrendingUp, TrendingDown, Radio } from "lucide-react";
+import { CustomCropModal } from "@/components/farm/CustomCropModal";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -13,14 +14,15 @@ export default function ComparePage() {
   const [allCrops, setAllCrops] = useState(REFERENCE_CROPS);
   const [selectedCrops, setSelectedCrops] = useState(["Tomato", "Rice", "Maize", "Chilli", "Banana", "Dragonfruit"]);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState(false);
+  const [livePricesMap, setLivePricesMap] = useState({});
 
   // Load all available crops dynamically from API
-  useEffect(() => {
+  const fetchCrops = () => {
     fetch("/api/crops")
       .then((res) => res.json())
       .then((json) => {
         if (json.success && Array.isArray(json.data) && json.data.length > 0) {
-          // Merge with reference crops
           const map = new Map();
           [...REFERENCE_CROPS, ...json.data].forEach((c) => {
             if (c && c.name) map.set(c.name.trim().toLowerCase(), c);
@@ -29,7 +31,49 @@ export default function ComparePage() {
         }
       })
       .catch((err) => console.warn("Failed to load crops for comparison:", err));
+  };
+
+  useEffect(() => {
+    fetchCrops();
   }, []);
+
+  // Fetch live Open Mandi market prices for selected crops
+  useEffect(() => {
+    async function loadLivePrices() {
+      try {
+        const res = await fetch("/api/market");
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data)) {
+          const priceMap = {};
+          json.data.forEach((item) => {
+            if (item && item.cropName) {
+              priceMap[item.cropName.toLowerCase()] = item;
+            }
+          });
+          setLivePricesMap(priceMap);
+        }
+      } catch (err) {
+        console.warn("Failed to load live market prices:", err);
+      }
+    }
+
+    loadLivePrices();
+  }, []);
+
+  const handleCustomCropCreated = (newCrop) => {
+    if (newCrop && newCrop.name) {
+      setAllCrops((prev) => {
+        const map = new Map();
+        [...prev, newCrop].forEach((c) => {
+          if (c && c.name) map.set(c.name.trim().toLowerCase(), c);
+        });
+        return Array.from(map.values());
+      });
+      if (!selectedCrops.includes(newCrop.name)) {
+        setSelectedCrops((prev) => [...prev, newCrop.name]);
+      }
+    }
+  };
 
   const filteredAvailableCrops = useMemo(() => {
     if (!searchQuery.trim()) return allCrops;
@@ -69,12 +113,26 @@ export default function ComparePage() {
   const comparedData = useMemo(() => {
     return selectedCrops.map((name) => {
       const found = allCrops.find((c) => c.name.toLowerCase() === name.toLowerCase());
-      if (found) return found;
+      const liveMarket = livePricesMap[name.toLowerCase()];
+      const priceToUse = liveMarket?.price || found?.referenceMarketPrice || 30;
+
+      if (found) {
+        return {
+          ...found,
+          effectivePrice: priceToUse,
+          marketTrend: liveMarket?.trend || "Stable",
+          isLiveMarket: liveMarket?.isLive || false,
+        };
+      }
+
       return {
         id: name,
         name: name,
         season: "Kharif",
-        referenceMarketPrice: 30,
+        referenceMarketPrice: priceToUse,
+        effectivePrice: priceToUse,
+        marketTrend: "Stable",
+        isLiveMarket: false,
         averageYieldPerHectare: 4000,
         cultivationCostPerHectare: 40000,
         waterRequirement: "Moderate",
@@ -82,7 +140,7 @@ export default function ComparePage() {
         marketVolatility: 30,
       };
     });
-  }, [selectedCrops, allCrops]);
+  }, [selectedCrops, allCrops, livePricesMap]);
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8 bg-[#F5F5F7] min-h-screen">
@@ -92,18 +150,32 @@ export default function ComparePage() {
           <div className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-3 py-1 rounded-full border border-emerald-200/60">
             <BarChart2 className="w-3.5 h-3.5" />
             <span>Multi-Crop Agronomic Matrix</span>
+            <Badge variant="success" className="text-[10px] py-0 px-2 flex items-center gap-1 rounded-full ml-1">
+              <Radio className="w-3 h-3 animate-pulse" /> Live Mandi Feed
+            </Badge>
           </div>
           <h1 className="text-3xl sm:text-4xl font-extrabold text-[#1D1D1F] tracking-tight mt-2">
             Side-by-Side Crop & Fruit Comparison
           </h1>
-          <p className="text-xs text-[#86868B] mt-1 font-medium">Compare economics, yield benchmarks, water requirements, and risk indices for up to 8 crops.</p>
+          <p className="text-xs text-[#86868B] mt-1 font-medium">Compare live market rates, yield benchmarks, water requirements, and net profit per hectare.</p>
         </div>
 
-        <Link href="/analysis">
-          <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold border-black/[0.1]">
-            <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Report
+        <div className="flex items-center gap-2 flex-wrap">
+          <Button
+            type="button"
+            onClick={() => setIsCustomModalOpen(true)}
+            size="sm"
+            className="rounded-full text-xs font-semibold bg-emerald-600 hover:bg-emerald-700 text-white shadow-apple-sm"
+          >
+            <Plus className="w-3.5 h-3.5 mr-1" /> Add Custom Crop
           </Button>
-        </Link>
+
+          <Link href="/analysis">
+            <Button variant="outline" size="sm" className="rounded-full text-xs font-semibold border-black/[0.1]">
+              <ArrowLeft className="w-3.5 h-3.5 mr-1" /> Back to Report
+            </Button>
+          </Link>
+        </div>
       </div>
 
       {/* Selector Card & Quick Search */}
@@ -155,6 +227,13 @@ export default function ComparePage() {
               className="px-3 py-1 rounded-full text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200/60 hover:bg-rose-100 transition-colors"
             >
               Deselect All
+            </button>
+            <button
+              type="button"
+              onClick={() => setIsCustomModalOpen(true)}
+              className="px-3 py-1 rounded-full text-xs font-semibold bg-emerald-600 text-white hover:bg-emerald-700 transition-colors flex items-center gap-1"
+            >
+              <Plus className="w-3 h-3" /> New Crop
             </button>
           </div>
         </div>
@@ -213,10 +292,17 @@ export default function ComparePage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-black/[0.04]">
-            <tr>
-              <td className="p-4 font-bold text-[#86868B] bg-[#FAF9F6]/50">Market Price (₹/kg)</td>
+            <tr className="bg-emerald-50/20">
+              <td className="p-4 font-extrabold text-emerald-900 bg-[#FAF9F6]/50">Live Mandi Market Rate</td>
               {comparedData.map((c) => (
-                <td key={c.id || c.name} className="p-4 font-extrabold text-[#1D1D1F]">₹{c.referenceMarketPrice} / kg</td>
+                <td key={c.id || c.name} className="p-4 font-extrabold text-[#1D1D1F]">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-sm text-emerald-700">₹{c.effectivePrice} / kg</span>
+                    {c.marketTrend === "Upward" && <TrendingUp className="w-3.5 h-3.5 text-emerald-600" />}
+                    {c.marketTrend === "Downward" && <TrendingDown className="w-3.5 h-3.5 text-rose-500" />}
+                  </div>
+                  <div className="text-[9px] text-[#86868B] font-medium mt-0.5">Live Mandi Feed</div>
+                </td>
               ))}
             </tr>
             <tr>
@@ -234,13 +320,13 @@ export default function ComparePage() {
             <tr className="bg-emerald-50/40">
               <td className="p-4 font-extrabold text-emerald-900">Est. Gross Revenue / Ha</td>
               {comparedData.map((c) => (
-                <td key={c.id || c.name} className="p-4 font-bold text-[#1D1D1F]">{formatCurrency(c.averageYieldPerHectare * c.referenceMarketPrice)}</td>
+                <td key={c.id || c.name} className="p-4 font-bold text-[#1D1D1F]">{formatCurrency(c.averageYieldPerHectare * c.effectivePrice)}</td>
               ))}
             </tr>
             <tr className="bg-emerald-100/60 font-black">
               <td className="p-4 font-extrabold text-emerald-950">Est. Net Profit / Ha</td>
               {comparedData.map((c) => {
-                const profit = c.averageYieldPerHectare * c.referenceMarketPrice - c.cultivationCostPerHectare;
+                const profit = c.averageYieldPerHectare * c.effectivePrice - c.cultivationCostPerHectare;
                 return (
                   <td key={c.id || c.name} className="p-4 text-emerald-950 font-extrabold text-sm">{formatCurrency(profit)}</td>
                 );
@@ -265,7 +351,7 @@ export default function ComparePage() {
             <tr>
               <td className="p-4 font-bold text-[#86868B] bg-[#FAF9F6]/50">Market Volatility</td>
               {comparedData.map((c) => (
-                <td key={c.id || c.name} className="p-4 text-[#1D1D1F] font-semibold">{c.marketVolatility}% Index</td>
+                <td key={c.id || c.name} className="p-4 text-[#1D1D1F] font-semibold">{c.marketVolatility || 25}% Index</td>
               ))}
             </tr>
           </tbody>
@@ -275,7 +361,7 @@ export default function ComparePage() {
       {/* Mobile Comparison Cards */}
       <div className="md:hidden space-y-4">
         {comparedData.map((c) => {
-          const profit = c.averageYieldPerHectare * c.referenceMarketPrice - c.cultivationCostPerHectare;
+          const profit = c.averageYieldPerHectare * c.effectivePrice - c.cultivationCostPerHectare;
           return (
             <Card key={c.id || c.name} className="p-5 space-y-3 border border-black/[0.06] shadow-apple-sm rounded-3xl bg-white">
               <div className="flex items-center justify-between border-b border-black/[0.05] pb-2">
@@ -286,7 +372,13 @@ export default function ComparePage() {
                 <Badge variant="success" className="rounded-full text-[10px]">{c.waterRequirement} Water</Badge>
               </div>
               <div className="text-xs space-y-1.5 text-[#86868B] pt-1 font-medium">
-                <div className="flex justify-between"><span>Price:</span> <strong className="text-[#1D1D1F]">₹{c.referenceMarketPrice}/kg</strong></div>
+                <div className="flex justify-between">
+                  <span>Live Mandi Price:</span> 
+                  <strong className="text-[#1D1D1F] flex items-center gap-1">
+                    ₹{c.effectivePrice}/kg
+                    {c.marketTrend === "Upward" && <TrendingUp className="w-3 h-3 text-emerald-600" />}
+                  </strong>
+                </div>
                 <div className="flex justify-between"><span>Yield:</span> <strong className="text-[#1D1D1F]">{formatNumber(c.averageYieldPerHectare)} kg/ha</strong></div>
                 <div className="flex justify-between"><span>Cost:</span> <strong className="text-[#1D1D1F]">{formatCurrency(c.cultivationCostPerHectare)}</strong></div>
                 <div className="flex justify-between text-emerald-950 font-bold pt-2 border-t border-black/[0.05]">
@@ -297,6 +389,13 @@ export default function ComparePage() {
           );
         })}
       </div>
+
+      {/* Custom Crop Creation Modal */}
+      <CustomCropModal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        onCropCreated={handleCustomCropCreated}
+      />
     </div>
   );
 }
