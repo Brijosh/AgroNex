@@ -5,6 +5,8 @@ import { getWeather } from "@/lib/services/weather-service";
 import { REFERENCE_CROPS } from "@/data/crops";
 import { REFERENCE_MARKET_PRICES } from "@/data/market-prices";
 
+export const dynamic = "force-dynamic";
+
 export async function POST(request) {
   try {
     const body = await request.json();

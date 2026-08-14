@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { getWeather } from "@/lib/services/weather-service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const location = searchParams.get("location") || "Kochi, Kerala";

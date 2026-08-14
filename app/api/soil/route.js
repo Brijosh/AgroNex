@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { detectSoilProperties } from "@/lib/services/soil-service";
 
+export const dynamic = "force-dynamic";
+
 export async function GET(request) {
   const { searchParams } = new URL(request.url);
   const lat = parseFloat(searchParams.get("lat")) || 9.9312;

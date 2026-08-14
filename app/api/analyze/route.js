@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import { prisma } from "@/lib/prisma";
 import { evaluateCropIntelligence } from "@/lib/engine/crop-engine";
 import { getWeather } from "@/lib/services/weather-service";
 import { REFERENCE_CROPS } from "@/data/crops";
 import { REFERENCE_MARKET_PRICES } from "@/data/market-prices";
 
-const prisma = new PrismaClient();
+export const dynamic = "force-dynamic";
 
 export async function POST(request) {
   try {
@@ -24,7 +24,7 @@ export async function POST(request) {
       preferences: body.preferences || {},
     };
 
-    // Fetch all crops from Prisma SQLite database (reference + custom user crops)
+    // Fetch all crops from Prisma database (reference + custom user crops)
     let allAvailableCrops = REFERENCE_CROPS;
     try {
       const dbCrops = await prisma.crop.findMany();
