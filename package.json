@@ -1,0 +1,36 @@
+{
+  "name": "cropwise",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:seed": "node prisma/seed.js",
+    "test": "node --test tests/engine/engine.test.js tests/engine/crop-intelligence.test.js tests/services/open-api.test.js tests/ui/charts.test.js tests/engine/simulation.test.js tests/api/routes.test.js tests/services/ai.test.js tests/api/history.test.js tests/e2e/e2e-audit.test.js tests/services/custom-crop.test.js tests/e2e/data-accuracy-audit.test.js"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.6.0",
+    "@prisma/client": "^5.16.1",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "framer-motion": "^13.1.0",
+    "lucide-react": "^0.395.0",
+    "next": "^14.2.4",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-hook-form": "^7.52.0",
+    "recharts": "^2.12.7",
+    "tailwind-merge": "^2.3.0",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "autoprefixer": "^10.4.19",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.4",
+    "postcss": "^8.4.38",
+    "prisma": "^5.16.1",
+    "tailwindcss": "^3.4.4"
+  }
+}
